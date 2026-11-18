@@ -280,3 +280,11 @@ td.why { color: var(--text); }
   .body, .tl-item p { font-size: 16px; line-height: 1.6; }
   .stat .num { font-size: 32px; }
 }
+
+/* Phones: round headshot above the name */
+@media (max-width: 640px) {
+  .hero { gap: 20px; padding-top: 36px; }
+  .hero-photo { order: -1; flex: 0 0 auto; }
+  .hero-photo .photo.tall { width: 140px; height: 140px; aspect-ratio: 1 / 1; border-radius: 50%; }
+  .hero-photo .photo img { object-position: center 20%; }
+}
