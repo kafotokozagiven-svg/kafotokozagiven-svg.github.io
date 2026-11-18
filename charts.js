@@ -14,13 +14,43 @@ Chart.defaults.plugins.legend.position = 'bottom';
 Chart.defaults.plugins.legend.labels.usePointStyle = true;
 Chart.defaults.maintainAspectRatio = false;
 
+/* Phones: keep labels straight, wrap long names, and use a key under doughnuts instead of callout lines. */
+const SMALL = window.innerWidth < 640;
+function wrapLabel(text, max) {
+  const words = String(text).split(' '); const lines = []; let line = '';
+  words.forEach((w) => { const t = line ? line + ' ' + w : w; if (t.length > max && line) { lines.push(line); line = w; } else { line = t; } });
+  lines.push(line); return lines.length > 1 ? lines : lines[0];
+}
+if (SMALL) {
+  Chart.defaults.scale.ticks.maxRotation = 0;
+  Chart.defaults.scales.category.ticks.callback = function (v) { return wrapLabel(this.getLabelForValue(v), 16); };
+  Chart.defaults.scales.linear.ticks.maxTicksLimit = 4;
+}
+function doughnutLegend(fmt) {
+  return {
+    display: SMALL,
+    position: 'bottom',
+    labels: {
+      usePointStyle: true, padding: 14, boxWidth: 10,
+      generateLabels(chart) {
+        const ds = chart.data.datasets[0];
+        const total = ds.data.reduce((a, b) => a + b, 0);
+        return Chart.overrides.doughnut.plugins.legend.labels.generateLabels(chart).map((l) => {
+          l.text = l.text + ': ' + fmt(ds.data[l.index]) + ' (' + Math.round(ds.data[l.index] / total * 100) + '%)';
+          return l;
+        });
+      }
+    }
+  };
+}
+
 /* Callout labels for doughnut charts: a line from each slice out to its name, value and share. */
 function calloutSide(chart) { return Math.max(70, Math.min(130, chart.width * 0.24)); }
-function calloutPadding(c) { const s = calloutSide(c.chart); return { left: s, right: s, top: 26, bottom: 26 }; }
+function calloutPadding(c) { if (SMALL) return 8; const s = calloutSide(c.chart); return { left: s, right: s, top: 26, bottom: 26 }; }
 const doughnutCallouts = {
   id: 'doughnutCallouts',
   afterDatasetsDraw(chart) {
-    if (chart.config.type !== 'doughnut') return;
+    if (chart.config.type !== 'doughnut' || SMALL) return;
     const ds = chart.data.datasets[0];
     const meta = chart.getDatasetMeta(0);
     const total = ds.data.reduce((a, b) => a + b, 0);
@@ -107,7 +137,7 @@ function moneyDoughnut(id, labels, values, colors) {
       cutout: '62%',
       layout: { padding: calloutPadding },
       plugins: {
-        legend: { display: false },
+        legend: doughnutLegend(mwk),
         tooltip: {
           callbacks: {
             label: (c) => c.label + ': ' + mwk(c.parsed) + ' (' + (c.parsed / total * 100).toFixed(1) + '%)'
@@ -127,7 +157,7 @@ function countDoughnut(id, labels, values, colors, unit) {
     options: {
       cutout: '62%',
       layout: { padding: calloutPadding },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.label + ': ' + c.parsed + ' ' + unit } } }
+      plugins: { legend: doughnutLegend((v) => v + ' ' + unit), tooltip: { callbacks: { label: (c) => c.label + ': ' + c.parsed + ' ' + unit } } }
     }
   });
 }

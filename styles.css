@@ -270,3 +270,5 @@ td.why { color: var(--text); }
 .cert > span { flex: 0 0 48px; font-weight: 700; color: var(--green); font-size: 15px; }
 .cert strong { font-size: 15.5px; }
 .cert p { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+
+@media (max-width: 760px) { .split { gap: 16px; } }
