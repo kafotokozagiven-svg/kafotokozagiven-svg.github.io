@@ -305,3 +305,11 @@ td.why { color: var(--text); }
 .sdg::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--gold, #C9A227); flex: none; }
 .sdgs-card { margin-top: 2px; gap: 6px; }
 .sdgs-card .sdg { font-size: 12px; padding: 3px 10px; }
+
+/* Subtle motion (switched off for people who ask for reduced motion) */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-photo .photo { animation: photoIn .7s ease-out both; }
+  @keyframes photoIn { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+  .reveal-on .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease-out, transform .6s ease-out; }
+  .reveal-on .reveal.in { opacity: 1; transform: none; }
+}
