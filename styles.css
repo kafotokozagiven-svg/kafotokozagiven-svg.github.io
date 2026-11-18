@@ -272,3 +272,11 @@ td.why { color: var(--text); }
 .cert p { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
 
 @media (max-width: 760px) { .split { gap: 16px; } }
+
+/* Phones: calmer text sizes */
+@media (max-width: 640px) {
+  h2 { font-size: 24px !important; }
+  .split > .main { font-size: 16px; line-height: 1.6; }
+  .body, .tl-item p { font-size: 16px; line-height: 1.6; }
+  .stat .num { font-size: 32px; }
+}
