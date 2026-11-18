@@ -28,7 +28,7 @@ if (SMALL) {
 }
 function doughnutLegend(fmt) {
   return {
-    display: SMALL,
+    display: false,
     position: 'bottom',
     labels: {
       usePointStyle: true, padding: 14, boxWidth: 10,
@@ -46,11 +46,83 @@ function doughnutLegend(fmt) {
 
 /* Callout labels for doughnut charts: a line from each slice out to its name, value and share. */
 function calloutSide(chart) { return Math.max(70, Math.min(130, chart.width * 0.24)); }
-function calloutPadding(c) { if (SMALL) return 8; const s = calloutSide(c.chart); return { left: s, right: s, top: 26, bottom: 26 }; }
+function calloutPadding(c) { if (SMALL) return { left: 8, right: 8, top: 70, bottom: 70 }; const s = calloutSide(c.chart); return { left: s, right: s, top: 26, bottom: 26 }; }
+/* Phones: small labels above and below the ring, each with a short line to its slice. */
+function shortMwk(v) { return v >= 1000000 ? 'MWK ' + (v / 1000000).toFixed(1).replace('.0', '') + 'M' : 'MWK ' + Math.round(v / 1000) + 'K'; }
+function drawSmallCallouts(chart) {
+  const ds = chart.data.datasets[0];
+  const meta = chart.getDatasetMeta(0);
+  const total = ds.data.reduce((a, b) => a + b, 0);
+  const fmt = ds.calloutShort || ds.calloutValue || ((v) => String(v));
+  const ctx = chart.ctx; const W = chart.width;
+  const nameFont = '600 10.5px Inter, system-ui, sans-serif';
+  const detailFont = '10px Inter, system-ui, sans-serif';
+  const maxW = 100, gap = 8;
+  function wrap(text) {
+    ctx.font = nameFont;
+    const words = String(text).split(' '); const lines = []; let line = '';
+    words.forEach((w) => { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else { line = t; } });
+    lines.push(line); return lines;
+  }
+  const items = [];
+  meta.data.forEach((arc, i) => {
+    if (!chart.getDataVisibility(i) || !ds.data[i]) return;
+    const a = (arc.startAngle + arc.endAngle) / 2;
+    const lines = wrap(chart.data.labels[i]);
+    const detail = fmt(ds.data[i]) + ' · ' + Math.round(ds.data[i] / total * 100) + '%';
+    ctx.font = nameFont; let w = Math.max.apply(null, lines.map((l) => ctx.measureText(l).width));
+    ctx.font = detailFont; w = Math.max(w, ctx.measureText(detail).width);
+    items.push({
+      s: Math.sin(a), top: Math.sin(a) < 0, lines, detail, w, h: lines.length * 13 + 12,
+      x0: arc.x + Math.cos(a) * (arc.outerRadius + 2), y0: arc.y + Math.sin(a) * (arc.outerRadius + 2),
+      cy: arc.y, r: arc.outerRadius,
+      color: Array.isArray(ds.backgroundColor) ? ds.backgroundColor[i] : ds.backgroundColor
+    });
+  });
+  const width = (band) => band.reduce((t, it) => t + it.w + gap, 0);
+  for (let n = 0; n < items.length; n++) {
+    const topB = items.filter((it) => it.top), botB = items.filter((it) => !it.top);
+    const [full, other] = width(topB) > width(botB) ? [topB, botB] : [botB, topB];
+    if (width(full) <= W - 8 || full.length < 2) break;
+    const mover = full.slice().sort((a, b) => Math.abs(a.s) - Math.abs(b.s))[0];
+    if (width(other) + mover.w + gap > W - 8) break;
+    mover.top = !mover.top;
+  }
+  [true, false].forEach((top) => {
+    const band = items.filter((it) => it.top === top).sort((a, b) => a.x0 - b.x0);
+    band.forEach((it) => { it.x = Math.min(Math.max(it.x0, it.w / 2 + 4), W - it.w / 2 - 4); });
+    for (let k = 1; k < band.length; k++) {
+      const need = band[k - 1].x + band[k - 1].w / 2 + band[k].w / 2 + gap;
+      if (band[k].x < need) band[k].x = need;
+    }
+    for (let k = band.length - 1; k >= 0; k--) {
+      const cur = band[k];
+      const limit = k === band.length - 1 ? W - cur.w / 2 - 4 : band[k + 1].x - band[k + 1].w / 2 - cur.w / 2 - gap;
+      if (cur.x > limit) cur.x = limit;
+    }
+  });
+  ctx.save();
+  items.forEach((it) => {
+    const edge = it.top ? it.cy - it.r - 10 : it.cy + it.r + 10;
+    const blockTop = it.top ? edge - it.h : edge;
+    const ax = Math.min(Math.max(it.x0, it.x - it.w / 2), it.x + it.w / 2);
+    ctx.strokeStyle = it.color; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(it.x0, it.y0); ctx.lineTo(ax, it.top ? edge + 2 : edge - 2); ctx.stroke();
+    ctx.fillStyle = it.color; ctx.beginPath(); ctx.arc(it.x0, it.y0, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    let y = blockTop + 7;
+    ctx.fillStyle = '#15211A'; ctx.font = nameFont;
+    it.lines.forEach((l) => { ctx.fillText(l, it.x, y); y += 13; });
+    ctx.fillStyle = '#3D4A42'; ctx.font = detailFont; ctx.fillText(it.detail, it.x, y);
+  });
+  ctx.restore();
+}
+
 const doughnutCallouts = {
   id: 'doughnutCallouts',
   afterDatasetsDraw(chart) {
-    if (chart.config.type !== 'doughnut' || SMALL) return;
+    if (chart.config.type !== 'doughnut') return;
+    if (SMALL) { drawSmallCallouts(chart); return; }
     const ds = chart.data.datasets[0];
     const meta = chart.getDatasetMeta(0);
     const total = ds.data.reduce((a, b) => a + b, 0);
@@ -132,7 +204,7 @@ function moneyDoughnut(id, labels, values, colors) {
   const total = values.reduce((a, b) => a + b, 0);
   new Chart(el, {
     type: 'doughnut',
-    data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff', calloutValue: mwk }] },
+    data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff', calloutValue: mwk, calloutShort: shortMwk }] },
     options: {
       cutout: '62%',
       layout: { padding: calloutPadding },
