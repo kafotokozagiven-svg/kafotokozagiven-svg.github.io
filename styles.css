@@ -288,3 +288,12 @@ td.why { color: var(--text); }
   .hero-photo .photo.tall { width: 140px; height: 140px; aspect-ratio: 1 / 1; border-radius: 50%; }
   .hero-photo .photo img { object-position: center 20%; }
 }
+
+/* Tablets: balanced rows and a sensible photo size */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .stats-grid, .meta, .grid:has(> :nth-child(4):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .grid:has(> :nth-child(5):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+@media (min-width: 641px) and (max-width: 960px) {
+  .hero-photo { flex: 0 0 auto; width: 320px; margin: 0 auto; }
+}
