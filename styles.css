@@ -313,3 +313,5 @@ td.why { color: var(--text); }
   .reveal-on .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease-out, transform .6s ease-out; }
   .reveal-on .reveal.in { opacity: 1; transform: none; }
 }
+.footer .copy a { color: #E9CF7A; text-decoration: underline; text-underline-offset: 2px; }
+.footer .copy a:hover { color: #fff; }
